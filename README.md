@@ -9,8 +9,6 @@ Desafio SQL para criar um controle de estoque em uma base de dados existente.
 - SQL
 - Banco de dados: postgres
 
-# Como executar o projeto
-
 
 # Autora
 Solange Duemes
