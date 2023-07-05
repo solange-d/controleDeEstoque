@@ -1,0 +1,65 @@
+--Para criar um campo chamado estoque na entidade produto foi executado o seguinte comando:
+
+ALTER TABLE produto
+ADD estoque integer
+
+--Para mudar a regra de modo que não exista mais item_estoque:
+--    1. Foi excluída a tabela item_estoque:
+
+DROP TABLE item_estoque
+
+--    2. Foi incluída a coluna id_produto na tabela venda, sendo esta coluna chave estrangeira, referenciando a tabela produto:
+
+ALTER TABLE venda 
+ADD id_produto integer;
+ ALTER TABLE venda
+ADD CONSTRAINT id_produto
+FOREIGN KEY(id_produto) REFERENCES produto(id_produto);
+
+
+--Criação da trigger para garantir que o estoque não possa ser negativo ao realizar uma venda.
+
+--    1. Verificar se tem estoque (antes de executar insert na tabela venda):
+CREATE FUNCTION verificarEstoque() RETURNS TRIGGER AS $$
+BEGIN
+    IF (SELECT estoque FROM produto WHERE id_produto = NEW.id_produto) < 1 THEN
+        RAISE EXCEPTION 'Não é possível incluir a venda. Estoque insuficiente.';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+ 
+
+CREATE TRIGGER validarEstoque BEFORE INSERT ON venda
+FOR EACH ROW EXECUTE FUNCTION verificarEstoque();
+
+--    2. Caso tenha estoque suficiente, deve executar o insert, ou seja, incluir a venda. Se não tiver estoque suficiente não é permitida a inclusão, apresentando a mensagem: --“ERROR: Não é possível adicionar venda. Estoque insuficiente.”
+--   3. Caso tenha estoque suficiente, a venda é inserida e, após a inserir a venda, é executada a trigger para baixar o estoque:
+
+CREATE FUNCTION baixaEstoque() RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE produto SET estoque = estoque - 1
+    WHERE id_produto = NEW.id_produto;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+ 
+
+CREATE TRIGGER atualizarEstoque AFTER INSERT ON venda
+FOR EACH ROW EXECUTE FUNCTION baixaEstoque();
+
+
+--Para realizar os testes:
+--Primeiro foi inserido estoque para o produto a ser testado:
+
+UPDATE PRODUTO set estoque = 1 where id_produto = 1;
+
+--Em seguida, tentou-se inserir duas vendas para o produto com id = 1 – o qual possui apenas um item em estoque):
+
+INSERT INTO venda(id_venda, id_cliente, data_hora, id_produto)
+values (12, 3, '2023-06-07', 1);
+INSERT INTO venda(id_venda, id_cliente, data_hora, id_produto)
+values (13, 2, '2023-06-07', 1)
+
+--O SGBD não permitiu a inclusão:
+--ERROR: Não é possível adicionar venda. Estoque insuficiente. CONTEXT: função PL/pgSQL verificar_estoque() linha 4 em RAISE SQL state: P0001

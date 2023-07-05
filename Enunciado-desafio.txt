@@ -1,0 +1,3 @@
+No banco de dados de produtos, crie um campo chamado estoque em produto, mude a regra de
+negócio para não existir mais item_estoque. Feito isso, crie um trigger para garantir que o estoque
+não possa ser negativo ao realizar uma venda.
