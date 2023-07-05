@@ -3,7 +3,7 @@
 ALTER TABLE produto
 ADD estoque integer
 
---Para mudar a regra de modo que não exista mais item_estoque:
+--Para mudar a regra de modo que não exista mais item_estoque foram executados os seguintes passos:
 --    1. Foi excluída a tabela item_estoque:
 
 DROP TABLE item_estoque
@@ -33,7 +33,8 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER validarEstoque BEFORE INSERT ON venda
 FOR EACH ROW EXECUTE FUNCTION verificarEstoque();
 
---    2. Caso tenha estoque suficiente, deve executar o insert, ou seja, incluir a venda. Se não tiver estoque suficiente não é permitida a inclusão, apresentando a mensagem: --“ERROR: Não é possível adicionar venda. Estoque insuficiente.”
+--    2. Caso tenha estoque suficiente, deve executar o insert, ou seja, incluir a venda. Se não tiver estoque suficiente não é permitida a inclusão, apresentando a mensagem: “ERROR: Não é possível adicionar venda. Estoque insuficiente.”
+
 --   3. Caso tenha estoque suficiente, a venda é inserida e, após a inserir a venda, é executada a trigger para baixar o estoque:
 
 CREATE FUNCTION baixaEstoque() RETURNS TRIGGER AS $$
@@ -50,16 +51,16 @@ FOR EACH ROW EXECUTE FUNCTION baixaEstoque();
 
 
 --Para realizar os testes:
---Primeiro foi inserido estoque para o produto a ser testado:
+--Primeiro deve ser inserido estoque para o produto a ser testado:
 
 UPDATE PRODUTO set estoque = 1 where id_produto = 1;
 
---Em seguida, tentou-se inserir duas vendas para o produto com id = 1 – o qual possui apenas um item em estoque):
+--Em seguida deve-se tentar inserir duas vendas para o produto com id = 1 – o qual possui apenas um item em estoque:
 
 INSERT INTO venda(id_venda, id_cliente, data_hora, id_produto)
 values (12, 3, '2023-06-07', 1);
 INSERT INTO venda(id_venda, id_cliente, data_hora, id_produto)
 values (13, 2, '2023-06-07', 1)
 
---O SGBD não permitiu a inclusão:
---ERROR: Não é possível adicionar venda. Estoque insuficiente. CONTEXT: função PL/pgSQL verificar_estoque() linha 4 em RAISE SQL state: P0001
+--O SGBD não irá permitir a inclusão, apresentando a seguinte mensagem:
+--ERROR: Não é possível adicionar venda. Estoque insuficiente.
